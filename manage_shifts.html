@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>シフト管理</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <h1>シフト管理</h1>
+  
+  <table id="shiftTable"> <!--シフトの日付,仕事名,開始時刻,終了時刻,削除ボタンの表-->
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>仕事名</th>
+        <th>削除</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- シフト一覧(script)-->
+    </tbody>
+  </table>
+
+  <button onclick="goBack()">戻る</button> <!-- Calencdar.htmlに戻る -->
+
+  <script>
+    const shifts = JSON.parse(localStorage.getItem("shifts")) || [];
+
+    const shiftTableBody = document.querySelector("#shiftTable tbody");
+
+    // シフトの一覧を票に表示する
+    shifts.forEach((shift, index) => {
+      const row = document.createElement("tr");
+
+     //シフトの日付
+      const dateCell = document.createElement("td");
+      dateCell.textContent = shift.date;
+      row.appendChild(dateCell);
+
+      //仕事名
+      const jobCell = document.createElement("td");
+      jobCell.textContent = shift.job;
+      row.appendChild(jobCell);
+
+      //削除ボタン
+      const deleteCell = document.createElement("td");
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "削除";
+      deleteButton.onclick = function() {
+        deleteShift(index);
+      };
+      deleteCell.appendChild(deleteButton);
+      row.appendChild(deleteCell);
+
+      shiftTableBody.appendChild(row);
+    });
+
+    // シフトを削除
+    function deleteShift(index) {
+      shifts.splice(index, 1);
+      localStorage.setItem("shifts", JSON.stringify(shifts));
+      location.reload(); // ページを再読み込み(票の更新)
+    }
+
+    function goBack() { //戻るボタンが押されたらCalendar.htmlに遷移する
+      window.location.href = "./calendar.html";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>シフトを追加</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <h1>シフトを追加</h1>
+  <form id="shiftForm">
+    <label for="shiftDate">日付:</label>
+    <input type="date" id="shiftDate" name="shiftDate" required /><br />
+
+    <label for="jobSelect">仕事:</label>
+    <select id="jobSelect" name="jobSelect" required>
+      <!-- 仕事の詳細を追加 -->
+    </select><br />
+
+    <!-- 時給の場合 -->
+    <div id="timeInputs" style="display:none;">
+      <label for="startTime">開始時間:</label>
+      <input type="time" id="startTime" name="startTime"/><br />
+
+      <label for="endTime">終了時間:</label>
+      <input type="time" id="endTime" name="endTime"/><br />
+    </div>
+
+    <!-- コマ給の場合 -->
+    <div id="kommaOptions" style="display:none;">
+      <label>勤務するコマを選択:</label>
+      <div id="kommaCheckboxes"></div>
+    </div>
+
+    <button type="submit">追加</button>
+  </form>
+
+  <button onclick="goBack()">戻る</button>
+
+  <script>
+    let jobs = [];  // グローバル変数として定義
+
+    const jobSelect = document.getElementById("jobSelect");
+    const kommaOptions = document.getElementById("kommaOptions");
+    const kommaCheckboxes = document.getElementById("kommaCheckboxes");
+    const timeInputs = document.getElementById("timeInputs");
+    const startTimeInput = document.getElementById("startTime");
+    const endTimeInput = document.getElementById("endTime");
+
+    function goBack() {
+        window.location.href = 'Calendar.html';  //カレンダーの画面に遷移する
+    }
+
+    // 仕事のリストの追加
+    window.onload = function() {
+        jobs = JSON.parse(localStorage.getItem("jobs")) || [];
+        if (jobs.length === 0) {
+            console.error('仕事データが見つかりません');
+        } else {
+            jobs.forEach(job => {
+                const option = document.createElement("option");
+                option.value = job.name;
+                option.textContent = job.name;
+                jobSelect.appendChild(option);
+            });
+
+            // 初回ロード時に最初の選択肢に基づいてフォームを表示
+            updateFormDisplay(jobs[0]);
+        }
+    };
+
+    jobSelect.addEventListener("change", function() {
+        const selectedJob = jobs.find(job => job.name === jobSelect.value);
+        updateFormDisplay(selectedJob);
+    });
+
+    // フォームの表示を更新する関数
+    function updateFormDisplay(selectedJob) {
+        if (selectedJob && selectedJob.salaryType === "コマ給") {
+            // コマ給の場合
+            kommaOptions.style.display = "block";
+            timeInputs.style.display = "none";
+            kommaCheckboxes.innerHTML = "";
+            startTimeInput.required = false;
+            endTimeInput.required = false;
+
+            // コマ名を表示する
+            selectedJob.kommaNames.forEach(komma => {
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = komma;
+                checkbox.id = komma;
+
+                const label = document.createElement("label");
+                label.htmlFor = komma;
+                label.textContent = komma;
+
+                kommaCheckboxes.appendChild(checkbox);
+                kommaCheckboxes.appendChild(label);
+                kommaCheckboxes.appendChild(document.createElement("br"));
+            });
+        } else if (selectedJob && selectedJob.salaryType === "時給") {
+            // 時給の場合
+            kommaOptions.style.display = "none";
+            timeInputs.style.display = "block";
+            startTimeInput.required = true;
+            endTimeInput.required = true;
+        }
+    }
+
+    // シフトのデータを保存する
+    document.getElementById("shiftForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const shiftDate = document.getElementById("shiftDate").value;
+    const shiftJob = document.getElementById("jobSelect").value;
+    let shiftHours = 0;
+
+    const selectedJob = jobs.find(job => job.name === shiftJob);
+
+    if (!selectedJob) {
+        console.error("仕事が選択されていません");
+        return;
+    }
+
+    if (selectedJob.salaryType === "コマ給") {
+        // コマ給の場合
+        const selectedKommas = [...kommaCheckboxes.querySelectorAll('input:checked')].map(cb => cb.value);
+        if (selectedKommas.length === 0) {
+            alert("少なくとも1つのコマを選択してください");
+            console.error("コマが選択されていません");
+            return;
+        }
+
+        shiftHours = selectedKommas.length;  // コマ数をshiftHoursに格納
+        const shiftSalary = selectedJob.salaryAmount * shiftHours;
+
+        const shifts = JSON.parse(localStorage.getItem("shifts")) || [];
+        // komaCountとしてコマ数を保存
+        shifts.push({ date: shiftDate, job: shiftJob, hours: shiftHours, salary: shiftSalary, komaCount: shiftHours, kommas: selectedKommas });
+        localStorage.setItem("shifts", JSON.stringify(shifts));
+
+    } else if (selectedJob.salaryType === "時給") {
+        // 時給の場合
+        const startTime = document.getElementById("startTime").value;
+        const endTime = document.getElementById("endTime").value;
+
+        if (!startTime || !endTime) {
+            console.error("開始時間または終了時間が入力されていません");
+            return;
+        }
+
+        const start = new Date(`1970-01-01T${startTime}:00`);
+        const end = new Date(`1970-01-01T${endTime}:00`);
+        shiftHours = (end - start) / (1000 * 60 * 60);
+        const shiftSalary = selectedJob.salaryAmount * shiftHours;
+
+        const shifts = JSON.parse(localStorage.getItem("shifts")) || [];
+        shifts.push({ date: shiftDate, job: shiftJob, hours: shiftHours, salary: shiftSalary });
+        localStorage.setItem("shifts", JSON.stringify(shifts));
+    }
+
+    alert("シフトが追加されました");
+    window.location.href = 'Calendar.html';  // シフト追加後、カレンダー画面に戻る
+});
+
+  </script>
+</body>
+</html>

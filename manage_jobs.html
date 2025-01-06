@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>仕事の管理</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <h1>仕事の管理</h1>
+  <form id="jobForm">
+    <label for="jobName">仕事の名前:</label>
+    <input type="text" id="jobName" required><br>
+
+    <label for="salaryType">給料の種類:</label>
+    <select id="salaryType" required onchange="toggleKommaField()">
+      <option value="時給">時給</option>
+      <option value="コマ給">コマ給</option>
+    </select><br>
+
+    <div id="kommaField" style="display:none;">
+      <label>コマ名:</label>
+      <div id="kommaList">
+        <!-- コマ名の入力フィールド -->
+      </div>
+      <button type="button" onclick="addKommaField()">コマ名を追加</button><br>
+    </div>
+
+    <label for="salaryAmount">給料金額:</label>
+    <input type="number" id="salaryAmount" required><br>
+
+    <label for="transportationCost">交通費:</label>
+    <input type="number" id="transportationCost" required><br>
+
+    <label for="fixedTransport">交通費のタイプ:</label>
+    <select id="fixedTransport" required>
+      <option value="固定">固定</option>
+      <option value="日毎">日毎</option>
+    </select><br>
+
+    <label for="jobColor">仕事の色:</label>
+    <input type="color" id="jobColor" required><br>
+
+    <button type="submit">仕事を追加</button>
+  </form>
+
+  <button onclick="goBack()">戻る</button>
+
+  <ul id="jobList">
+    <!-- 仕事のリストを表示 -->
+  </ul>
+
+  <script>
+
+    const jobList = document.getElementById("jobList");
+
+    // 仕事のリストを取得して表示
+    const jobs = JSON.parse(localStorage.getItem("jobs")) || [];
+    jobs.forEach((job, index) => {
+      const listItem = document.createElement("li");
+      listItem.textContent = `${job.name} (${job.salaryType}) - 給料: ${job.salaryAmount}円 - 交通費: ${job.transportationCost}円 (${job.fixedTransport}) - 色: ${job.color}`;
+      if (job.salaryType === "コマ給" && job.kommaNames) {
+        listItem.textContent += ` - コマ名: ${job.kommaNames.join(", ")}`;
+      }
+
+      // 削除ボタン
+      const deleteButton = document.createElement("button");
+      deleteButton.textContent = "削除";
+      deleteButton.onclick = function() {
+        deleteJob(index);
+      };
+      listItem.appendChild(deleteButton);
+
+      jobList.appendChild(listItem);
+    });
+
+    // 新しい仕事を追加
+    document.getElementById("jobForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const jobName = document.getElementById("jobName").value;
+      const salaryType = document.getElementById("salaryType").value;
+      const salaryAmount = document.getElementById("salaryAmount").value;
+      const transportationCost = document.getElementById("transportationCost").value;
+      const fixedTransport = document.getElementById("fixedTransport").value;
+      const jobColor = document.getElementById("jobColor").value;
+      let kommaNames = [];
+
+      if (salaryType === "コマ給") {
+        const kommaInputs = document.querySelectorAll(".komma-name");
+        kommaInputs.forEach(input => {
+          if (input.value.trim() !== "") {
+            kommaNames.push(input.value.trim());
+          }
+        });
+      }
+
+      const jobs = JSON.parse(localStorage.getItem("jobs")) || [];
+      const newJob = { 
+        name: jobName, 
+        salaryType: salaryType, 
+        salaryAmount: salaryAmount, 
+        transportationCost: transportationCost, 
+        fixedTransport: fixedTransport,
+        color: jobColor
+      };
+
+      if (salaryType === "コマ給") {
+        newJob.kommaNames = kommaNames;
+      }
+
+      jobs.push(newJob);
+      localStorage.setItem("jobs", JSON.stringify(jobs));
+
+      // ページを再読み込みして仕事一覧の更新
+      location.reload();
+    });
+
+    // コマ給の場合にコマ名入力欄を表示する
+    function toggleKommaField() {
+
+      const salaryType = document.getElementById("salaryType").value;
+      const kommaField = document.getElementById("kommaField");
+
+      if (salaryType === "コマ給") {
+        kommaField.style.display = "block";
+      } else {
+        kommaField.style.display = "none";
+        document.getElementById("kommaList").innerHTML = "";
+      }
+    }
+
+    // コマ名の入力フィールドを追加
+    function addKommaField() {
+      const kommaList = document.getElementById("kommaList");
+      const kommaDiv = document.createElement("div");
+
+      const kommaInput = document.createElement("input");
+      kommaInput.type = "text";
+      kommaInput.className = "komma-name";
+      kommaInput.placeholder = "コマ名を入力";
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.textContent = "削除";
+      removeButton.onclick = function() {
+        kommaList.removeChild(kommaDiv);
+      };
+
+      kommaDiv.appendChild(kommaInput);
+      kommaDiv.appendChild(removeButton);
+      kommaList.appendChild(kommaDiv);
+    }
+
+    // 仕事を削除する
+    function deleteJob(index) {
+      const jobs = JSON.parse(localStorage.getItem("jobs")) || [];
+      jobs.splice(index, 1);  
+      localStorage.setItem("jobs", JSON.stringify(jobs));
+
+      // ページを再読み込みして更新する
+      location.reload();
+    }
+
+    // 戻るボタンでカレンダーページに戻る
+    function goBack() {
+      window.history.back();
+    }
+  </script>
+  
+</body>
+</html>

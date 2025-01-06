@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カレンダー</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <div class="calendar">
+    <div class="calendar-header">
+      <button id="prevMonth">←</button>
+      <h1 id="month"></h1>
+      <button id="nextMonth">→</button>
+    </div>
+
+    <div class="body">
+      <div class="week" id="week1"></div>
+      <div class="week" id="week2"></div>
+      <div class="week" id="week3"></div>
+      <div class="week" id="week4"></div>
+      <div class="week" id="week5"></div>
+      <div class="week" id="week6"></div>
+    </div>
+  </div>
+
+  <div id="monthlySalary">
+    <h2>給与: <span id="salaryAmount">0</span>円</h2>
+  </div>
+
+  <div class="buttons">
+    <button id="addShift">シフトを追加</button>
+    <button id="manageJobs">仕事の管理</button>
+    <button id="manageShifts">シフトの管理</button>
+  </div>
+
+  <script>
+
+    const jobs = JSON.parse(localStorage.getItem("jobs")) || [];
+    let shifts = JSON.parse(localStorage.getItem("shifts")) || [];
+    const currentDate = new Date();
+    let displayedMonth = currentDate.getMonth();
+    let displayedYear = currentDate.getFullYear();
+
+    function generateCalendar() { //カレンダーの表示
+
+      const daysInMonth = new Date(displayedYear, displayedMonth + 1, 0).getDate(); //何日前あるか
+      const firstDay = new Date(displayedYear, displayedMonth, 1).getDay(); //1日の曜日を取得
+
+      document.getElementById("month").textContent = `${displayedYear}年 ${displayedMonth + 1}月`;
+
+      for (let week = 1; week <= 6; week++) { //1周目から6周目までのマスの生成
+        document.getElementById(`week${week}`).innerHTML = "";
+      }
+
+      let currentWeek = 1;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayDiv = document.createElement("div");
+        dayDiv.className = "day";
+        dayDiv.textContent = day;
+
+        const dayShifts = shifts.filter(shift => {
+
+          const shiftDate = new Date(shift.date);
+          return shiftDate.getFullYear() === displayedYear && shiftDate.getMonth() === displayedMonth && shiftDate.getDate() === day;
+        });
+
+        dayShifts.forEach(shift => {
+
+          const shiftDiv = document.createElement("div");
+          shiftDiv.textContent = shift.job;
+
+          const job = jobs.find(job => job.name === shift.job);
+          if (job) {
+            shiftDiv.style.backgroundColor = job.color;
+          } else {
+            shiftDiv.style.backgroundColor = "#cccccc";
+          }
+
+          dayDiv.appendChild(shiftDiv);
+        });
+
+        const dayOfWeek = (firstDay + day - 1) % 7; //i週間の内何日まであるか(初週と最終週用)
+        document.getElementById(`week${currentWeek}`).appendChild(dayDiv);
+        if (dayOfWeek === 6) {
+          currentWeek++;
+        }
+      }
+
+      calculateMonthlySalary();
+    }
+
+    function calculateMonthlySalary() { //月の給与の計算
+  let monthlySalary = 0;
+
+  const monthlyShifts = shifts.filter(shift => {
+    const shiftDate = new Date(shift.date);
+    return shiftDate.getFullYear() === displayedYear && shiftDate.getMonth() === displayedMonth;
+  });
+
+  monthlyShifts.forEach(shift => {
+    const job = jobs.find(job => job.name === shift.job);
+    if (job) {
+      if (job.salaryType === "時給") {
+        const hoursWorked = shift.hours || 0;  // 勤務時間をhoursから取得
+        monthlySalary += parseInt(job.salaryAmount) * hoursWorked;
+      } else if (job.salaryType === "コマ給") {
+        const komaCount = shift.komaCount || shift.hours || 0;  // komaCountを優先して使用
+        console.log(`コマ給の仕事: ${shift.job}, コマ数: ${komaCount}, コマ給: ${job.salaryAmount}`);
+        monthlySalary += parseInt(job.salaryAmount) * komaCount;
+      }
+    }
+  });
+
+  document.getElementById("salaryAmount").textContent = monthlySalary.toLocaleString();
+}
+
+
+    document.getElementById("prevMonth").addEventListener("click", function () { //前の月の表示
+      displayedMonth--;
+      if (displayedMonth < 0) {
+        displayedMonth = 11;
+        displayedYear--;
+      }
+      generateCalendar();
+    });
+
+    document.getElementById("nextMonth").addEventListener("click", function () { //次の月の表示
+      displayedMonth++;
+      if (displayedMonth > 11) {
+        displayedMonth = 0;
+        displayedYear++;
+      }
+      generateCalendar();
+    });
+
+    document.getElementById("addShift").addEventListener("click", function () { //シフト登録画面への遷移
+      window.location.href = "./shift.html";
+    });
+
+    document.getElementById("manageJobs").addEventListener("click", function () { //仕事登録画面への遷移
+      window.location.href = "./manage_jobs.html";
+    });
+
+    document.getElementById("manageShifts").addEventListener("click", function () { //シフト管理画面への遷移
+      window.location.href = "./manage_shifts.html";
+    });
+
+    generateCalendar();
+  </script>
+
+</body>
+
+</html>
